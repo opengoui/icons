@@ -189,9 +189,10 @@ func upperFirst(s string) string {
 }
 
 // render returns the files to write, keyed by slash path relative to the module
-// root: svg/*.svg, index.json, name/name_gen.go and LICENSE.
+// root: svg/*.svg, index.json, name/name_gen.go and LICENSE.lucide (Lucide's
+// license; the module's own LICENSE is never touched).
 func (b *bundle) render() (map[string][]byte, error) {
-	files := map[string][]byte{"LICENSE": b.license}
+	files := map[string][]byte{"LICENSE.lucide": b.license}
 	for name, data := range b.svgs {
 		files["svg/"+name+".svg"] = data
 	}

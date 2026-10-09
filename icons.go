@@ -22,7 +22,8 @@ var indexJSON []byte
 // alias of one.
 var ErrNotFound = errors.New("icons: icon not found")
 
-// Info describes one icon.
+// Info describes one icon, as returned by [Lookup]. Its slices are copies the
+// caller may modify; they are empty when the icon has no such entries.
 type Info struct {
 	// Name is the canonical icon name, e.g. "arrow-right".
 	Name string

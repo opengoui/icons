@@ -1,6 +1,6 @@
 # icons
 
-把 [Lucide](https://lucide.dev) 图标集以 SVG 形式嵌入的 Go 模块。**只依赖标准库**，不绑定任何 UI 框架（OpenGoUI 只是其中一个使用者）：它提供 SVG 文档与元数据，怎么渲染由调用方决定。
+The [Lucide](https://lucide.dev) icon set as embedded SVG for Go. It depends only on the standard library and is not tied to any UI framework (OpenGoUI is just one consumer): it provides SVG documents, metadata and path data, and the caller decides how to render them.
 
 ```go
 import (
@@ -8,49 +8,50 @@ import (
 	"github.com/opengoui/icons/name"
 )
 
-data, err := icons.SVG(name.Search)      // []byte，24x24，stroke="currentColor"
-ids := icons.Search("arrow right")       // 按名称 / 别名 / 标签搜索
-info, ok := icons.Lookup("alert-circle") // 旧名（别名）同样可用
+svg, err := icons.SVG(name.Search)       // []byte, 24x24, stroke="currentColor"
+d, err := icons.Draw(name.ArrowRight)    // view box, stroke width and path data
+hits := icons.Search("arrow right")      // search by name, alias and tag
+info, ok := icons.Lookup("alert-circle") // former names resolve too
 ```
 
-| API | 说明 |
+| API | Description |
 | --- | --- |
-| `SVG(name)` | 图标 SVG，返回副本；未知名称返回包装了 `ErrNotFound` 的错误 |
-| `Names()` / `Has` / `Resolve` | 全部图标名（升序）、是否存在、别名 → 规范名 |
+| `SVG(name)` | The icon's SVG document, as a copy; an unknown name returns an error wrapping `ErrNotFound` |
+| `Names()` / `Has` / `Resolve` | All icon names (ascending), existence check, alias to canonical name |
 | `Lookup(name)` | `Info{Name, Tags, Categories, Aliases}` |
-| `Search(query)` | 空白分词，每个词需子串命中名称、别名或标签（忽略大小写） |
-| `Draw(name)` / `Parse(svg)` | 化简成 `Drawing{ViewBox, StrokeWidth, Paths}`：方形视图框 + SVG path data（circle/rect/line/polyline 等已转成路径），渲染器无需 XML 解析器 |
-| `FS()` | `fs.FS`，根目录下是 `<name>.svg`，可用于遍历或 `http.FileServer` |
-| `Version()` | 当前嵌入的 Lucide 版本 |
-| `name.*` | 每个图标一个字符串常量（`name.ArrowRight`），拼写错误在编译期暴露 |
+| `Search(query)` | Whitespace-separated terms; each must be a case-insensitive substring of the name, an alias or a tag |
+| `Draw(name)` / `Parse(svg)` | Reduces an icon to `Drawing{ViewBox, StrokeWidth, Paths}`: a square view box plus SVG path data (circle, rect, line, polyline, ... are converted to paths), so a renderer needs no XML parser |
+| `FS()` | An `fs.FS` with `<name>.svg` at its root, for walking or `http.FileServer` |
+| `Version()` | The embedded Lucide version |
+| `name.*` | One string constant per icon (`name.ArrowRight`), so typos fail at compile time |
 
-## 在 OpenGoUI 中使用
+Run `go doc github.com/opengoui/icons` for the full reference.
 
-`vigo/kit/lucide` 把 `Draw` 的结果交给 `kit.NewIconData`，并缓存；方向性图标（箭头、chevron）自动标记 `Directional`，RTL 下镜像：
+## Using it with OpenGoUI
+
+`vigo/kit/lucide` feeds `Draw` into `kit.NewIconData` and caches the result. Icons that point along the reading direction (arrows, chevrons) are marked `Directional`, so they mirror in right-to-left layouts:
 
 ```go
 kit.NewIcon(lucide.Must(name.Search)).Size(20)
 ```
 
-`vigo/go.mod` 目前用 `replace github.com/opengoui/icons => ../icons` 指向本地目录；`icons` 发布并打 tag 后，换成真实版本号并删除 replace。
+## Syncing the icons
 
-## 同步图标
-
-图标数据（`svg/`、`index.json`、`name/name_gen.go`、`LICENSE`）由脚本从 Lucide 的 GitHub release 源码包生成，**不要手改**：
+The icon data (`svg/`, `index.json`, `name/name_gen.go`, `LICENSE.lucide`) is generated from a Lucide GitHub release; **do not edit it by hand**:
 
 ```bash
-go generate ./...                          # 重新同步 index.json 里记录的版本
-go run ./internal/sync -version latest     # 升级到最新 release
-go run ./internal/sync -version 1.53.0     # 固定到指定版本
-go run ./internal/sync -archive l.tgz -version 1.53.0   # 离线：使用本地源码包
+make sync                       # re-sync the version recorded in index.json
+make upgrade                    # upgrade to the latest release
+make sync VERSION=1.53.0        # pin an exact release
+make sync VERSION=1.53.0 ARCHIVE=lucide.tgz   # offline, from a local source tarball
 ```
 
-设置 `GITHUB_TOKEN` 可避开查询 `latest` 时的 API 限流。升级后运行 `go test ./...`：测试会校验 `svg/`、`index.json` 与 `name` 常量三者一致。
+`go generate ./...` and `go run ./internal/sync [-version V] [-archive FILE]` do the same without make. Set `GITHUB_TOKEN` to avoid API rate limits when resolving `latest`. After upgrading, run `make test`: the tests check that `svg/`, `index.json` and the `name` constants agree, and that every icon still reduces to a `Drawing`.
 
-## 发布与体积
+## Distribution and size
 
-数据通过 `go:embed` 嵌入，`go get` 即用，无需网络或构建步骤；模块体积约 1.3 MB（1869 个 SVG）。链接器只会把被引用的包数据编入二进制。上游版本与本模块版本相互独立，升级图标后按语义化版本打 tag。
+The data is embedded with `go:embed`, so `go get` is all a consumer needs: no network or build step. The module is about 1.3 MB (1869 SVGs), and the linker only includes the data of packages that are actually referenced. Module tags follow the upstream Lucide version: this module's `vX.Y.Z` embeds Lucide `X.Y.Z`, so `go get github.com/opengoui/icons@v1.53.0` gives you Lucide 1.53.0. After `make upgrade`, tag the new release with the version printed by `icons.Version()`.
 
-## 许可
+## License
 
-Lucide 采用 ISC 许可（部分图标源自 Feather，MIT）。再分发时必须附带本目录的 `LICENSE`，同步脚本会随图标一并更新它。
+The code of this module is under the license in `LICENSE`. The icons are Lucide's, licensed under ISC (some derive from Feather, MIT); redistributions of the icons must include `LICENSE.lucide`, which the sync updates along with them.

@@ -1,26 +1,46 @@
 // Package icons embeds the Lucide icon set (https://lucide.dev) as SVG files
-// and exposes them by name. It has no dependencies beyond the standard library
-// and knows nothing about any UI toolkit: it hands out SVG documents and
-// metadata, and callers decide how to render them.
+// and exposes them by name. It depends only on the standard library and knows
+// nothing about any UI toolkit: it hands out SVG documents, metadata and
+// ready-to-stroke path data, and callers decide how to render them.
 //
-// Every icon is a 24x24 SVG that paints with stroke="currentColor", so the
-// stroke color is whatever the consumer substitutes for "currentColor".
+// Every icon is a 24x24 SVG drawn with stroke="currentColor", so the stroke
+// color is whatever the consumer substitutes for "currentColor". All functions
+// are safe for concurrent use; the package has no mutable state.
 //
-// Look an icon up by its Lucide name, or by one of its former names:
+// # Usage
 //
-//	data, err := icons.SVG("search")
+// Pick the entry point by what you need:
 //
-// The [github.com/opengoui/icons/name] package has a constant for every icon,
-// so a typo becomes a compile error and editors can complete names:
+//   - [SVG] returns the raw SVG document, for web views, files or an SVG
+//     rasterizer.
+//   - [Draw] returns a [Drawing] (view box, stroke width, path data) for a
+//     renderer that strokes paths itself and has no XML parser.
+//   - [Search], [Lookup] and [Names] find icons by keyword and list them.
+//   - [FS] exposes the raw files as an [io/fs.FS], e.g. for net/http.
 //
-//	data, err := icons.SVG(name.Search)
+// A name is a Lucide name such as "arrow-right", or a former name of an icon
+// that Lucide has since renamed. The [github.com/opengoui/icons/name] package
+// has a constant for every icon, so a typo becomes a compile error:
 //
-// Use [Search] to find icons by keyword, [Lookup] for tags and categories, and
-// [FS] to serve or walk the raw files.
+//	import (
+//		"github.com/opengoui/icons"
+//		"github.com/opengoui/icons/name"
+//	)
 //
-// The data is vendored by "go generate" from a pinned Lucide release; see
-// [Version]. Lucide is licensed under ISC (with some icons MIT, derived from
-// Feather); the LICENSE file in this module must accompany redistributions.
+//	svg, err := icons.SVG(name.Search)       // <svg ...>...</svg>
+//	d, err := icons.Draw("arrow-right")      // d.ViewBox == 24, d.StrokeWidth == 2
+//	hits := icons.Search("magnifier")        // ["search", ...]
+//
+// An unknown name yields an error wrapping [ErrNotFound]; test for it with
+// [errors.Is].
+//
+// # Updating the data
+//
+// The icons are vendored from a pinned Lucide release (see [Version]) by
+// "go generate" in this module; never edit svg/, index.json or the name
+// package by hand. Lucide is licensed under ISC, with some icons MIT-licensed
+// and derived from Feather; LICENSE.lucide must accompany redistributions of
+// the icons.
 package icons
 
 //go:generate go run ./internal/sync

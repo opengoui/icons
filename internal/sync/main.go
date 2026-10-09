@@ -1,6 +1,6 @@
 // Command sync downloads a Lucide release and regenerates the embedded icon
 // data of the icons module: svg/*.svg, index.json, name/name_gen.go and
-// LICENSE.
+// LICENSE.lucide.
 //
 // Run it from the module root:
 //

@@ -77,7 +77,7 @@ func TestReadArchiveAndRender(t *testing.T) {
 			t.Errorf("name_gen.go lacks %q:\n%s", want, gen)
 		}
 	}
-	for _, key := range []string{"LICENSE", "index.json", "svg/x.svg", "svg/arrow-up-0-1.svg"} {
+	for _, key := range []string{"LICENSE.lucide", "index.json", "svg/x.svg", "svg/arrow-up-0-1.svg"} {
 		if _, ok := files[key]; !ok {
 			t.Errorf("missing output %s", key)
 		}
@@ -104,8 +104,14 @@ func TestWriteRemovesStaleSVG(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	if err := os.WriteFile(filepath.Join(root, "LICENSE"), []byte("mine"), 0o644); err != nil {
+		t.Fatal(err)
+	}
 	if err := write(root, files); err != nil {
 		t.Fatal(err)
+	}
+	if got, _ := os.ReadFile(filepath.Join(root, "LICENSE")); string(got) != "mine" {
+		t.Errorf("module LICENSE overwritten: %q", got)
 	}
 	if _, err := os.Stat(stale); !os.IsNotExist(err) {
 		t.Errorf("stale svg survived: %v", err)
